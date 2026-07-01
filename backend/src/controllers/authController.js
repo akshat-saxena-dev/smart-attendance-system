@@ -52,6 +52,69 @@ const registerSchool = async (req, res) => {
 
 };
 
+
+const loginSchool = async (req, res) => {
+    try {
+        const {schoolId, password} = req.body;
+
+        if (!schoolId || !password) {
+            return res.status(400).json({
+                success: false,
+                message: "All fields are required"
+            });
+        }
+
+        const schoolNumericId = Number(schoolId.replace("SCH", "")) - 10000;
+
+        if (isNaN(schoolNumericId) || schoolNumericId <= 0) {
+            return res.status(400).json({
+                success: false,
+                message: "Invalid School ID"
+            });
+        }
+
+        const findSchool = await pool.query(
+            "SELECT * FROM schools WHERE id = $1",
+            [schoolNumericId]
+        );
+
+        if (findSchool.rows.length === 0) {
+            return res.status(404).json({
+                success: false,
+                message: "School not found"
+            });
+        }
+
+        const storedHash = findSchool.rows[0].password_hash;
+
+        const isMatch = await bcrypt.compare(
+            password, storedHash
+        );
+
+        if (!isMatch) {
+            return res.status(401).json({
+                success: false,
+                message: "Incorrect password"
+            });
+        }
+
+        return res.status(200).json({
+            success: true,
+            message: "Login successful"
+        });
+    } catch (err) {
+        console.error(err);
+
+        return res.status(500).json({
+            success: false,
+            message: "Internal Server Error"
+        });
+
+    }
+}
+
+
+
 module.exports = {
-    registerSchool
+    registerSchool, loginSchool
 };

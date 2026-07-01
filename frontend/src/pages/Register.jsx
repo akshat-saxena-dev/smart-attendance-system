@@ -1,11 +1,15 @@
 import { useState } from "react";
+import { useNavigate } from "react-router-dom";
+import { registerSchool } from "../services/authService";
 
 function Register() {
     const [schoolName, setSchoolName] = useState("");
     const [password, setPassword] = useState("");
     const [confirmPassword, setConfirmPassword] = useState("");
 
-    const handleRegister = (e) => {
+    const navigate = useNavigate();
+
+    const handleRegister = async (e) => {
         e.preventDefault();
 
         if (password != confirmPassword) {
@@ -13,10 +17,24 @@ function Register() {
             return;
         }
 
-        console.log({
-            schoolName, 
-            password
-        });
+        try {
+            const data = await registerSchool(
+                schoolName,
+                password
+            );
+
+            navigate("/");
+
+        } catch (err) {
+
+            console.error(err);
+
+            alert(
+                err.response?.data?.message ||
+                "Registration failed"
+            );
+
+        }
     }
 
     return (

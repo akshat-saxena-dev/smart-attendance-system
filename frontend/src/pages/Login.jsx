@@ -1,16 +1,31 @@
 import { useState } from "react";
+import { useNavigate } from "react-router-dom";
+import { loginSchool } from "../services/authService";
 
 function Login() {
   const [schoolId, setSchoolId] = useState("");
   const [password, setPassword] = useState("");
 
-  const handleLogin = (e) => {
+  const navigate = useNavigate();
+
+  const handleLogin = async (e) => {
     e.preventDefault();
 
-    console.log({
-      schoolId,
-      password,
-    });
+    try {
+        const data = await loginSchool(schoolId, password);
+
+        console.log(data);
+
+        if (data.success) {
+            localStorage.setItem("schoolId", schoolId);
+            navigate("/dashboard");
+        }
+    }
+    catch (err) {
+        alert(
+            err.response?.data?.message || "Login failed"
+        );
+    }
   };
 
   return (
