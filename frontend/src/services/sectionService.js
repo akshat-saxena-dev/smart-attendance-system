@@ -24,3 +24,14 @@ export const createSection = async (
 
     return response.data;
 };
+
+export const verifySection = async (sectionId, accessCode) => {
+    const response = await api.post(
+        `/sections/${sectionId}/verify`,
+        {
+            accessCode
+        }
+    );
+
+    return response.data;
+};

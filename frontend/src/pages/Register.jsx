@@ -23,6 +23,11 @@ function Register() {
                 password
             );
 
+            alert("Registration Successful !");
+            setSchoolName("");
+            setPassword("");
+            setConfirmPassword("");
+
             navigate("/");
 
         } catch (err) {

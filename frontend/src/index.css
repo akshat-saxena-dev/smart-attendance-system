@@ -63,6 +63,7 @@ button{
   font-size:16px;
   font-weight:600;
   transition:.3s;
+  margin-right: 5px;
 }
 
 button:hover{
