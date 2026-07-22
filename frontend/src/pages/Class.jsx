@@ -1,3 +1,4 @@
+import BackButton from "../components/BackButton";
 import { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import {
@@ -76,6 +77,8 @@ function Class() {
   };
 
   return (
+    <div className="class-page">
+      <BackButton fallback="/dashboard" />
     <div>
       <h1>Class</h1>
 
@@ -101,6 +104,7 @@ function Class() {
       <br />
 
       <button onClick={handleAddSection}>Add Section</button>
+    </div>
     </div>
   );
 }

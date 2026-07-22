@@ -1,3 +1,4 @@
+import BackButton from "../components/BackButton";
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { loginSchool } from "../services/authService";
@@ -29,6 +30,8 @@ function Login() {
   };
 
   return (
+    <div className="login-page">
+      <BackButton fallback="/" />
     <div className="login-container">
       <h1>School Login</h1>
 
@@ -63,6 +66,7 @@ function Login() {
 
         <button type="submit">Login</button>
       </form>
+    </div>
     </div>
   );
 }

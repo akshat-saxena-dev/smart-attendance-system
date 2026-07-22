@@ -1,3 +1,4 @@
+import BackButton from "../components/BackButton";
 import { useEffect, useState } from "react";
 import { getClasses, createClass } from "../services/classService";
 import { useNavigate } from "react-router-dom";
@@ -50,6 +51,8 @@ function Dashboard() {
   };
 
   return (
+    <div className="dashboard-page">
+      <BackButton fallback="/" />
     <div>
       <h1>School Dashboard</h1>
 
@@ -81,6 +84,7 @@ function Dashboard() {
       <br />
 
       <button onClick={handleAddClass}>Add Class</button>
+    </div>
     </div>
   );
 }

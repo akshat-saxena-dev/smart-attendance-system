@@ -21,13 +21,13 @@ app.use("/", studentRoutes);
 const PORT = 5000;
 
 pool.connect()
-    .then(() => {
-        console.log("Connected to PostgreSQL");
-    })
-    .catch((err) => {
-        console.error("Database connection failed:", err.message);
-    });
-
+  .then((client) => {
+    console.log("Connected to PostgreSQL");
+    client.release(); // Release the client back to the pool
+  })
+  .catch((err) => {
+    console.error("Database connection failed:", err.message);
+  });
 app.listen(PORT, () => {
     console.log(`Server running on port ${PORT}`);
 });
