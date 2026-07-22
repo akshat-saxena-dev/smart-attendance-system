@@ -1,3 +1,4 @@
+import BackButton from "../components/BackButton";
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { registerSchool } from "../services/authService";
@@ -43,6 +44,8 @@ function Register() {
     }
 
     return (
+        <div className ="register-page">
+            <BackButton fallback="/" />
         <div className="register-container">
             <h1>Register New School</h1>
 
@@ -89,6 +92,7 @@ function Register() {
 
             </form>
 
+        </div>
         </div>
     )
 }
