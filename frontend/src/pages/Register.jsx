@@ -23,7 +23,10 @@ function Register() {
                 password
             );
 
-            alert("Registration Successful !");
+            alert(
+                `Registration successful!\n\nYour School ID: ${data.schoolId}`
+            );
+            
             setSchoolName("");
             setPassword("");
             setConfirmPassword("");
