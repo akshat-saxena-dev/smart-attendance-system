@@ -82,7 +82,43 @@ const getStudents = async (req, res) => {
     }
 };
 
+const deleteStudents = async (req, res) => {
+const { sectionId } = req.params;
+
+if (!sectionId) {
+    return res.status(400).json({
+        success: false,
+        message: "Section ID is required."
+    });
+}
+
+try {
+    const result = await pool.query(
+    `
+    DELETE FROM students
+    WHERE section_id = $1
+    `,
+    [sectionId]
+);
+
+return res.status(200).json({
+    success: true,
+    message: "Students deleted successfully."
+});
+
+}
+catch (err) {
+    console.error(err);
+
+    return res.status(500).json({
+        success: false,
+        message: "Internal server error."
+    });
+}
+
+};
+
 
 module.exports = {
-    addStudents, getStudents
+    addStudents, getStudents, deleteStudents
 };

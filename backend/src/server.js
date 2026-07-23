@@ -5,6 +5,7 @@ const authRoutes = require("./routes/authRoutes");
 const classRoutes = require("./routes/classRoutes");
 const sectionRoutes = require("./routes/sectionRoutes");
 const studentRoutes = require("./routes/studentRoutes");
+const attendanceRoutes = require("./routes/attendanceRoutes");
 
 const express = require("express");
 const cors = require("cors");
@@ -17,6 +18,7 @@ app.use("/", authRoutes);
 app.use("/", classRoutes);
 app.use("/", sectionRoutes);
 app.use("/", studentRoutes);
+app.use("/", attendanceRoutes);
 
 const PORT = 5000;
 
