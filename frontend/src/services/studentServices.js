@@ -11,6 +11,18 @@ export const addStudents = async (sectionId, students) => {
     return response.data;
 };
 
+export const addStudent = async (sectionId, rollNo, studentName) => {
+    const response = await api.post(
+        `/sections/${sectionId}/student`,
+        {
+            rollNo,
+            studentName
+        }
+    );
+
+    return response.data;
+};
+
 export const getStudents = async (sectionId) => {
     const response = await api.get(
         `/sections/${sectionId}/students`

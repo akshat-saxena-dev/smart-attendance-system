@@ -5,6 +5,7 @@ import {
   addStudents,
   getStudents,
   deleteStudents,
+  addStudent,
 } from "../services/studentServices";
 import {
   saveAttendance,
@@ -20,6 +21,9 @@ function Students() {
   const [selectedDate, setSelectedDate] = useState("");
   const [attendance, setAttendance] = useState({});
   const [attendanceExists, setAttendanceExists] = useState(false);
+  const [showAddStudent, setShowAddStudent] = useState(false);
+  const [newRollNo, setNewRollNo] = useState("");
+  const [newStudentName, setNewStudentName] = useState("");
 
   const handleSave = async () => {
     try {
@@ -47,12 +51,39 @@ function Students() {
     }
   };
 
+  const handleAddStudent = async () => {
+    if (newRollNo.trim() === "" || newStudentName.trim() === "") {
+      alert("Please fill all fields.");
+      return;
+    }
+
+    console.log({
+      newRollNo,
+      converted: Number(newRollNo),
+      type: typeof Number(newRollNo),
+    });
+
+    try {
+      await addStudent(sectionId, Number(newRollNo), newStudentName);
+
+      alert("Student added successfully.");
+
+      await fetchStudents();
+      setNewRollNo("");
+      setNewStudentName("");
+      setShowAddStudent(false);
+    } catch (error) {
+      console.error(error);
+      alert(error.response?.data?.message || "Failed to add student.");
+    }
+  };
+
   const fetchStudents = async () => {
     try {
       const data = await getStudents(sectionId);
+      console.log(data.student);
       setStudents(data.students);
     } catch (error) {
-      console.error(error);
       alert("Unable to fetch students.");
     }
   };
@@ -201,12 +232,48 @@ function Students() {
             }
           </>
         ) : (
-          <button
-            onClick={handleDeleteStudents}
-            style={{ backgroundColor: "#dc3545", color: "white" }}
-          >
-            Delete All Students
-          </button>
+          <div style={{ display: "flex", gap: "10px", marginTop: "20px" }}>
+            <button
+              onClick={() => {
+                if (showAddStudent) {
+                  setNewRollNo("");
+                  setNewStudentName("");
+                }
+
+                setShowAddStudent(!showAddStudent);
+              }}
+            >
+              {showAddStudent ? "Cancel" : "Add More Student"}
+            </button>
+
+            <button onClick={handleDeleteStudents}>Delete All Students</button>
+          </div>
+        )}
+
+        {showAddStudent && (
+          <div style={{ marginTop: "20px" }}>
+            <h4>Add Student</h4>
+
+            <div style={{ marginBottom: "10px" }}>
+              <input
+                type="number"
+                placeholder="Roll Number"
+                value={newRollNo}
+                onChange={(e) => setNewRollNo(e.target.value)}
+              />
+            </div>
+
+            <div style={{ marginBottom: "10px" }}>
+              <input
+                type="text"
+                placeholder="Student Name"
+                value={newStudentName}
+                onChange={(e) => setNewStudentName(e.target.value)}
+              />
+            </div>
+
+            <button onClick={handleAddStudent}>Add Student</button>
+          </div>
         )}
 
         {showInput && (
