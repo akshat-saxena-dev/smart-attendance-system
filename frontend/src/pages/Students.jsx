@@ -1,3 +1,4 @@
+
 import { useEffect, useMemo, useState } from "react";
 import {
     useLocation,
@@ -5,7 +6,9 @@ import {
     useParams,
 } from "react-router-dom";
 import "./Home.css";
-
+import {
+    addStudent,
+} from "../services/studentServices";
 /* Get today's date without timezone problems */
 const getTodayDate = () => {
     const currentDate = new Date();
@@ -15,6 +18,8 @@ const getTodayDate = () => {
         .toISOString()
         .split("T")[0];
 };
+
+
 
 /* Safely read data from localStorage */
 const getStoredData = (key, fallbackValue) => {
@@ -213,53 +218,83 @@ const teacherName =
         setShowAddStudentForm(true);
     };
 
-    const handleAddStudent = (event) => {
-        event.preventDefault();
+const handleAddStudent = async (event) => {
+    event.preventDefault();
 
-        const cleanedStudentName = studentName.trim();
-        const cleanedRollNumber = rollNumber.trim();
+    const cleanedStudentName = studentName.trim();
+    const cleanedRollNumber = rollNumber.trim();
 
-        if (!cleanedStudentName) {
-            setFormError(
-                "Please enter the student's name."
-            );
-            return;
-        }
+    if (!cleanedStudentName) {
+        setFormError("Please enter the student's name.");
+        return;
+    }
 
-        if (!cleanedRollNumber) {
-            setFormError(
-                "Please enter a roll number."
-            );
-            return;
-        }
+    if (!cleanedRollNumber) {
+        setFormError("Please enter the roll number.");
+        return;
+    }
 
-        const rollNumberAlreadyExists = students.some(
-            (student) =>
-                String(student.rollNumber)
-                    .toLowerCase() ===
-                cleanedRollNumber.toLowerCase()
+    const duplicateRollNumber = students.some(
+        (student) =>
+            String(student.rollNumber).trim() ===
+            cleanedRollNumber
+    );
+
+    if (duplicateRollNumber) {
+        setFormError(
+            `Roll number ${cleanedRollNumber} already exists.`
         );
+        return;
+    }
 
-        if (rollNumberAlreadyExists) {
-            setFormError(
-                `Roll number ${cleanedRollNumber} already exists.`
-            );
-            return;
-        }
-
-        const newStudent = {
-            id: createStudentId(),
-            name: cleanedStudentName,
+    try {
+        const result = await createStudent(sectionId, {
+            studentName: cleanedStudentName,
             rollNumber: cleanedRollNumber,
+        });
+
+        const databaseStudent =
+            result?.student ||
+            result?.data?.student ||
+            result?.data ||
+            result;
+
+        const savedStudent = {
+            id:
+                databaseStudent?.id ||
+                databaseStudent?._id,
+
+            name:
+                databaseStudent?.studentName ||
+                databaseStudent?.name ||
+                cleanedStudentName,
+
+            rollNumber:
+                databaseStudent?.rollNumber ||
+                databaseStudent?.roll_number ||
+                cleanedRollNumber,
         };
+        await addStudent(sectionId,{
+            studentName: cleanedStudentName,
+            rollNumber: cleanedRollNumber,
+        });
 
         setStudents((previousStudents) => [
             ...previousStudents,
-            newStudent,
+            savedStudent,
         ]);
 
         closeAddStudentForm();
-    };
+    } catch (error) {
+        console.error("Unable to save student:", error);
+
+        setFormError(
+            error.response?.data?.message ||
+                error.message ||
+                "Unable to save the student in the database."
+        );
+    }
+};
 
     const handleAttendanceChange = (
         studentId,
@@ -526,6 +561,20 @@ const teacherName =
             {attendanceCounts.notMarked}
         </strong>
     </button>
+</section>
+<section className="date-section">
+    <label htmlFor="attendance-date">
+        Attendance Date
+    </label>
+
+    <input
+        id="attendance-date"
+        type="date"
+        value={attendanceDate}
+        onChange={(event) =>
+            setAttendanceDate(event.target.value)
+        }
+    />
 </section>
 
                 <section className="students-toolbar">
