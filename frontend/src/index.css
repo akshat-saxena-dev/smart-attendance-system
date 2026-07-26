@@ -515,3 +515,78 @@ input[type="date"] {
 .icon-btn{
   color: white;
 }
+
+@media(max-width: 768px){
+ .student-name strong{
+   font-size: 16px;
+ }
+
+ .student-actions-nav strong{
+  font-size: 14px;
+ }
+
+ .student-actions{
+   margin-right: 1rem;
+  }
+
+  .student-actions  button{
+    width: 90px;
+    height: 30px;
+  
+  }
+ .attendance-btn{
+   font-size: 13px;
+ }
+ .student-name{
+  min-width: 120px;
+ }
+ .student-actions-nav{
+    display:flex; 
+    gap:11px;
+    flex-wrap: wrap;
+     
+}
+
+.student-row {
+  display: flex;
+  flex-wrap: wrap;
+  width: 100%;
+  box-sizing: border-box;
+}
+}
+
+@media (max-width: 600px) {
+  .present-btn,
+  .absent-btn,
+  .delete-btn {
+    display: none;
+  }
+}
+
+@media (max-width:400px){
+
+.student-row,
+.student-header{
+    grid-template-columns: minmax(90px,1fr) 50px 50px 35px;
+    gap:6px;
+}
+
+.attendance-btn{
+    max-width:50px;
+    height:32px;
+    font-size:11px;
+    padding:4px;
+}
+
+.delete-btn{
+    max-width:30px;
+    height:30px;
+}
+.student-actions {
+  gap: 10px;
+}
+
+}
+
+
+
