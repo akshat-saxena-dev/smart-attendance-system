@@ -564,7 +564,6 @@ input[type="date"] {
 }
 
 @media (max-width:400px){
-
 .student-row,
 .student-header{
     grid-template-columns: minmax(90px,1fr) 50px 50px 35px;
