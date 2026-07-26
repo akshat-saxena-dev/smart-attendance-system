@@ -1,1006 +1,355 @@
-
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
+import BackButton from "../components/BackButton";
+import { useParams } from "react-router-dom";
 import {
-    useLocation,
-    useNavigate,
-    useParams,
-} from "react-router-dom";
-import "./Home.css";
-import {
-    addStudent,
+  addStudents,
+  getStudents,
+  deleteStudents,
+  addStudent,
 } from "../services/studentServices";
-/* Get today's date without timezone problems */
-const getTodayDate = () => {
-    const currentDate = new Date();
-    const timezoneOffset = currentDate.getTimezoneOffset() * 60000;
-
-    return new Date(currentDate.getTime() - timezoneOffset)
-        .toISOString()
-        .split("T")[0];
-};
-
-
-
-/* Safely read data from localStorage */
-const getStoredData = (key, fallbackValue) => {
-    try {
-        const storedValue = localStorage.getItem(key);
-
-        return storedValue
-            ? JSON.parse(storedValue)
-            : fallbackValue;
-    } catch (error) {
-        console.error("Could not read stored data:", error);
-        return fallbackValue;
-    }
-};
-
-/* Create a unique student ID */
-const createStudentId = () => {
-    if (globalThis.crypto?.randomUUID) {
-        return globalThis.crypto.randomUUID();
-    }
-
-    return `${Date.now()}-${Math.random()
-        .toString(16)
-        .slice(2)}`;
-};
-
-/* Automatically generate the next roll number */
-const getNextRollNumber = (students) => {
-    const numericRollNumbers = students
-        .map((student) => Number(student.rollNumber))
-        .filter((rollNumber) => Number.isFinite(rollNumber));
-
-    const highestRollNumber =
-        numericRollNumbers.length > 0
-            ? Math.max(...numericRollNumbers)
-            : 0;
-
-    return String(highestRollNumber + 1).padStart(2, "0");
-};
+import {
+  saveAttendance,
+  checkAttendance,
+} from "../services/attendanceServices";
 
 function Students() {
-    const navigate = useNavigate();
-    const location = useLocation();
-    const { sectionId } = useParams();
+  const { sectionId } = useParams();
 
-    const storageSectionId = sectionId || "default";
+  const [showInput, setShowInput] = useState(false);
+  const [studentText, setStudentText] = useState("");
+  const [students, setStudents] = useState([]);
+  const [selectedDate, setSelectedDate] = useState("");
+  const [attendance, setAttendance] = useState({});
+  const [attendanceExists, setAttendanceExists] = useState(false);
+  const [showAddStudent, setShowAddStudent] = useState(false);
+  const [newRollNo, setNewRollNo] = useState("");
+  const [newStudentName, setNewStudentName] = useState("");
 
-    const studentsStorageKey =
-        `attendance-students-${storageSectionId}`;
+  const handleSave = async () => {
+    try {
+      const studentArray = studentText
+        .split("\n")
+        .map((name) => name.trim())
+        .filter((name) => name !== "");
 
-    /*
-     * These values can be passed from the previous page:
-     *
-     * navigate(`/sections/${sectionId}/students`, {
-     *     state: {
-     *         className: "Class 8",
-     *         sectionName: "Section A"
-     *     }
-     * });
-     */
-   const className =
-    location.state?.className || "Class";
+      if (studentArray.length === 0) {
+        alert("Please enter at least one student.");
+        return;
+      }
 
-const sectionName =
-    location.state?.sectionName ||
-    "Section Name";
+      await addStudents(sectionId, studentArray);
 
-const teacherName =
-    location.state?.teacherName ||
-    "Teacher Not Assigned";
+      await fetchStudents();
 
-    const [students, setStudents] = useState(() =>
-        getStoredData(studentsStorageKey, [])
-    );
+      alert("Students added successfully!");
 
-    const [searchText, setSearchText] = useState("");
-    const [activeAttendanceFilter, setActiveAttendanceFilter]= useState("all");
-    const [attendanceDate, setAttendanceDate] =
-        useState(getTodayDate);
+      setStudentText("");
+      setShowInput(false);
+    } catch (error) {
+      console.error(error);
+      alert("Unable to add students.");
+    }
+  };
 
-    const [attendance, setAttendance] = useState({});
-    const [savedMessage, setSavedMessage] = useState("");
+  const handleAddStudent = async () => {
+    if (newRollNo.trim() === "" || newStudentName.trim() === "") {
+      alert("Please fill all fields.");
+      return;
+    }
 
-    const [showAddStudentForm, setShowAddStudentForm] =
-        useState(false);
-
-    const [studentName, setStudentName] = useState("");
-    const [rollNumber, setRollNumber] = useState("");
-    const [formError, setFormError] = useState("");
-
-    const attendanceStorageKey =
-        `attendance-record-${storageSectionId}-${attendanceDate}`;
-
-    /* Save students automatically */
-    useEffect(() => {
-        try {
-            localStorage.setItem(
-                studentsStorageKey,
-                JSON.stringify(students)
-            );
-        } catch (error) {
-            console.error("Could not save students:", error);
-        }
-    }, [students, studentsStorageKey]);
-
-    /* Load attendance whenever the date changes */
-    useEffect(() => {
-        const savedAttendance = getStoredData(
-            attendanceStorageKey,
-            {}
-        );
-
-        setAttendance(savedAttendance);
-        setSavedMessage("");
-    }, [attendanceStorageKey]);
-
-    const filteredStudents = useMemo(() => {
-    const searchValue = searchText.trim().toLowerCase();
-
-    return students.filter((student) => {
-        const studentNameValue = student.name.toLowerCase();
-        const rollNumberValue = String(
-            student.rollNumber
-        ).toLowerCase();
-
-        const matchesSearch =
-            !searchValue ||
-            studentNameValue.includes(searchValue) ||
-            rollNumberValue.includes(searchValue);
-
-        const studentStatus = attendance[student.id];
-
-        let matchesAttendanceFilter = true;
-
-        if (activeAttendanceFilter === "present") {
-            matchesAttendanceFilter =
-                studentStatus === "present";
-        }
-
-        if (activeAttendanceFilter === "absent") {
-            matchesAttendanceFilter =
-                studentStatus === "absent";
-        }
-
-        if (activeAttendanceFilter === "notMarked") {
-            matchesAttendanceFilter =
-                studentStatus !== "present" &&
-                studentStatus !== "absent";
-        }
-
-        return matchesSearch && matchesAttendanceFilter;
+    console.log({
+      newRollNo,
+      converted: Number(newRollNo),
+      type: typeof Number(newRollNo),
     });
-}, [
-    students,
-    searchText,
-    attendance,
-    activeAttendanceFilter,
-]);
 
-    const attendanceCounts = useMemo(() => {
-        return students.reduce(
-            (counts, student) => {
-                const status = attendance[student.id];
+    try {
+      await addStudent(sectionId, Number(newRollNo), newStudentName);
 
-                if (status === "present") {
-                    counts.present += 1;
-                } else if (status === "absent") {
-                    counts.absent += 1;
-                } else {
-                    counts.notMarked += 1;
-                }
+      alert("Student added successfully.");
 
-                return counts;
-            },
-            {
-                present: 0,
-                absent: 0,
-                notMarked: 0,
-            }
-        );
-    }, [students, attendance]);
-
-    const closeAddStudentForm = () => {
-        setStudentName("");
-        setRollNumber("");
-        setFormError("");
-        setShowAddStudentForm(false);
-    };
-
-    const openAddStudentForm = () => {
-        setStudentName("");
-        setRollNumber(
-            getNextRollNumber(students)
-        );
-        setFormError("");
-        setShowAddStudentForm(true);
-    };
-
-const handleAddStudent = async (event) => {
-    event.preventDefault();
-
-    const cleanedStudentName = studentName.trim();
-    const cleanedRollNumber = rollNumber.trim();
-
-    if (!cleanedStudentName) {
-        setFormError("Please enter the student's name.");
-        return;
+      await fetchStudents();
+      setNewRollNo("");
+      setNewStudentName("");
+      setShowAddStudent(false);
+    } catch (error) {
+      console.error(error);
+      alert(error.response?.data?.message || "Failed to add student.");
     }
+  };
 
-    if (!cleanedRollNumber) {
-        setFormError("Please enter the roll number.");
-        return;
+  const fetchStudents = async () => {
+    try {
+      const data = await getStudents(sectionId);
+      console.log(data.student);
+      setStudents(data.students);
+    } catch (error) {
+      alert("Unable to fetch students.");
     }
+  };
 
-    const duplicateRollNumber = students.some(
-        (student) =>
-            String(student.rollNumber).trim() ===
-            cleanedRollNumber
+  const handleDeleteStudents = async () => {
+    const confirmDelete = window.confirm(
+      "Delete all students? This will also delete all attendance records.",
     );
 
-    if (duplicateRollNumber) {
-        setFormError(
-            `Roll number ${cleanedRollNumber} already exists.`
-        );
-        return;
+    if (!confirmDelete) {
+      return;
     }
 
     try {
-        const result = await createStudent(sectionId, {
-            studentName: cleanedStudentName,
-            rollNumber: cleanedRollNumber,
-        });
+      await deleteStudents(sectionId);
 
-        const databaseStudent =
-            result?.student ||
-            result?.data?.student ||
-            result?.data ||
-            result;
+      alert("Students deleted successfully.");
 
-        const savedStudent = {
-            id:
-                databaseStudent?.id ||
-                databaseStudent?._id,
+      await fetchStudents();
+    } catch (err) {
+      console.error(err);
 
-            name:
-                databaseStudent?.studentName ||
-                databaseStudent?.name ||
-                cleanedStudentName,
-
-            rollNumber:
-                databaseStudent?.rollNumber ||
-                databaseStudent?.roll_number ||
-                cleanedRollNumber,
-        };
-        await addStudent(sectionId,{
-            studentName: cleanedStudentName,
-            rollNumber: cleanedRollNumber,
-        });
-
-        setStudents((previousStudents) => [
-            ...previousStudents,
-            savedStudent,
-        ]);
-
-        closeAddStudentForm();
-    } catch (error) {
-        console.error("Unable to save student:", error);
-
-        setFormError(
-            error.response?.data?.message ||
-                error.message ||
-                "Unable to save the student in the database."
-        );
+      alert("Failed to delete students.");
     }
-};
+  };
 
-    const handleAttendanceChange = (
-        studentId,
-        selectedStatus
-    ) => {
-        setAttendance((previousAttendance) => {
-            const updatedAttendance = {
-                ...previousAttendance,
-            };
+  const saveAttendanceRecord = async () => {
+    if (!selectedDate) {
+      alert("Please select a date first.");
+      return;
+    }
+    try {
+      const attendanceArray = Object.entries(attendance).map(
+        ([studentId, status]) => ({
+          studentId: Number(studentId),
+          status,
+        }),
+      );
 
-            /*
-             * Clicking an already selected checkbox
-             * will uncheck it.
-             */
-            if (
-                updatedAttendance[studentId] ===
-                selectedStatus
-            ) {
-                delete updatedAttendance[studentId];
-                return updatedAttendance;
+      await saveAttendance(selectedDate, attendanceArray);
+
+      alert("Attendance saved successfully!");
+
+      setAttendance({});
+      setAttendanceExists(true);
+    } catch (err) {
+      console.error(err);
+
+      alert("Unable to save attendance.");
+    }
+  };
+
+  const checkAttendanceForDate = async (date) => {
+    try {
+      const data = await checkAttendance(sectionId, date);
+
+      if (data.exists) {
+        alert(
+          `Attendance for ${date} has already been recorded. Please select another date.`,
+        );
+
+        setAttendanceExists(true);
+      } else {
+        setAttendanceExists(false);
+
+        // Reset the page for new attendance
+        setAttendance({});
+      }
+    } catch (err) {
+      console.error(err);
+
+      alert("Unable to check attendance.");
+    }
+  };
+
+  const handleAttendance = (studentId, status) => {
+    if (!selectedDate) {
+      alert("Please select a date first.");
+      return;
+    }
+
+    setAttendance((prev) => ({
+      ...prev,
+      [studentId]: status,
+    }));
+  };
+
+  const handleDateChange = async (e) => {
+    const newDate = e.target.value;
+
+    const markedStudents = Object.keys(attendance).length;
+
+    if (markedStudents > 0 && markedStudents < students.length) {
+      const confirmChange = window.confirm(
+        "You have unsaved attendance. Changing the date will discard it. Continue?",
+      );
+
+      if (!confirmChange) {
+        return;
+      }
+
+      setAttendance({});
+    }
+
+    setSelectedDate(newDate);
+
+    await checkAttendanceForDate(newDate);
+  };
+
+  useEffect(() => {
+    if (
+      students.length > 0 &&
+      Object.keys(attendance).length === students.length
+    ) {
+      saveAttendanceRecord();
+    }
+  }, [attendance]);
+
+  useEffect(() => {
+    fetchStudents();
+  }, []);
+
+  return (
+    <div className="student-page">
+      <BackButton fallback="/dashboard" />
+
+      <div>
+        <h1>Students Dashboard</h1>
+
+        <p>Section ID: {sectionId}</p>
+
+        {students.length === 0 ? (
+          <>
+            {
+              <button onClick={() => setShowInput(true)}>
+                Add Students Manually
+              </button>
             }
 
-            /*
-             * A student can only be present or absent,
-             * not both.
-             */
-            updatedAttendance[studentId] =
-                selectedStatus;
+            {
+              <>
+                <br />
+                <br />
+                <button>Add Students using OCR</button>
+              </>
+            }
+          </>
+        ) : (
+          <div style={{ display: "flex", gap: "10px", marginTop: "20px" }}>
+            <button
+              onClick={() => {
+                if (showAddStudent) {
+                  setNewRollNo("");
+                  setNewStudentName("");
+                }
 
-            return updatedAttendance;
-        });
+                setShowAddStudent(!showAddStudent);
+              }}
+            >
+              {showAddStudent ? "Cancel" : "Add More Student"}
+            </button>
 
-        setSavedMessage("");
-    };
+            <button onClick={handleDeleteStudents}>Delete All Students</button>
+          </div>
+        )}
 
-    const handleDeleteStudent = (student) => {
-        const confirmed = window.confirm(
-            `Delete ${student.name}?\n\nThis action cannot be undone.`
-        );
+        {showAddStudent && (
+          <div style={{ marginTop: "20px" }}>
+            <h4>Add Student</h4>
 
-        if (!confirmed) {
-            return;
-        }
+            <div style={{ marginBottom: "10px" }}>
+              <input
+                type="number"
+                placeholder="Roll Number"
+                value={newRollNo}
+                onChange={(e) => setNewRollNo(e.target.value)}
+              />
+            </div>
 
-        setStudents((previousStudents) =>
-            previousStudents.filter(
-                (currentStudent) =>
-                    currentStudent.id !== student.id
-            )
-        );
+            <div style={{ marginBottom: "10px" }}>
+              <input
+                type="text"
+                placeholder="Student Name"
+                value={newStudentName}
+                onChange={(e) => setNewStudentName(e.target.value)}
+              />
+            </div>
 
-        setAttendance((previousAttendance) => {
-            const updatedAttendance = {
-                ...previousAttendance,
-            };
+            <button onClick={handleAddStudent}>Add Student</button>
+          </div>
+        )}
 
-            delete updatedAttendance[student.id];
+        {showInput && (
+          <div>
+            <br />
 
-            return updatedAttendance;
-        });
+            <textarea
+              rows={10}
+              cols={40}
+              placeholder="Enter one student per line"
+              value={studentText}
+              onChange={(e) => setStudentText(e.target.value)}
+            />
 
-        setSavedMessage("");
-    };
+            <br />
+            <br />
 
-    const handleDeleteAllStudents = () => {
-        if (students.length === 0) {
-            return;
-        }
+            <button onClick={handleSave}>Save Students</button>
+          </div>
+        )}
 
-        const confirmed = window.confirm(
-            `Delete all ${students.length} students?\n\nThis action cannot be undone.`
-        );
+        <br />
 
-        if (!confirmed) {
-            return;
-        }
+        <input
+          type="date"
+          value={selectedDate}
+          onChange={(e) => handleDateChange(e)}
+        />
 
-        setStudents([]);
-        setAttendance({});
-        setSearchText("");
-        setSavedMessage("");
+        <div className="student-row header-row">
+              <div className="student-name">
+                   <strong>Student Name</strong>
+              </div>
 
-        try {
-            localStorage.removeItem(
-                attendanceStorageKey
-            );
-        } catch (error) {
-            console.error(
-                "Could not remove attendance:",
-                error
-            );
-        }
-    };
+              <div className="student-actions-nav">
+                  <strong style={{width:"100px",textAlign:"end"}}className="present-btn">Present</strong>
+                 <strong  style={{width:"100px",textAlign:"end" }} className="absent-btn">Absent</strong>
+                  <strong style={{width:"80px",textAlign:"end"}} className="delete-btn">Delete</strong>
+              </div>
+        </div>
 
-    const handleSaveAttendance = () => {
-        if (students.length === 0) {
-            return;
-        }
+     
+          {students.map((student) => (
+               <div className="student-row" key={student.id}>
+                  <div className="student-name">
+                   {student.rollNo}. {student.studentName}
+             </div>
 
-        try {
-            localStorage.setItem(
-                attendanceStorageKey,
-                JSON.stringify(attendance)
-            );
-
-            setSavedMessage(
-                "Attendance saved successfully."
-            );
-
-            window.setTimeout(() => {
-                setSavedMessage("");
-            }, 3000);
-        } catch (error) {
-            console.error(
-                "Could not save attendance:",
-                error
-            );
-
-            setSavedMessage(
-                "Attendance could not be saved."
-            );
-        }
-    };
-    const handleAttendanceFilter = (filterName) => {
-    setActiveAttendanceFilter((currentFilter) => {
-        if (
-            currentFilter === filterName &&
-            filterName !== "all"
-        ) {
-            return "all";
-        }
-
-        return filterName;
-    });
-};
-
-
-    return (
-        <main className="students-page">
-            <section className="students-card">
-                <button
-                    type="button"
-                    className="students-back-button"
-                    onClick={() => navigate(-1)}
-                >
-                    <span aria-hidden="true">←</span>
-                    Back
+          <div className="student-actions">
+              <button
+                 className={`attendance-btn ${
+                 attendance[student.id] === "Present" ? "present-active" : ""
+                   }`}
+               onClick={() => handleAttendance(student.id, "Present")}
+                 >
+                {attendance[student.id] === "Present" ? "✔ " : "Present"}
                 </button>
 
-                <header className="students-header">
-                    <p className="students-eyebrow">
-                        Attendance Management
-                    </p>
-
-                    <h1>Student Attendance</h1>
-
-                   <div className="students-subtitle">
-    <span>{className}</span>
-
-    <span className="subtitle-dot">•</span>
-
-    <span>{sectionName}</span>
-
-    <span className="subtitle-dot">•</span>
-
-    <span className="teacher-name">
-        Teacher: {teacherName}
-    </span>
-
-    <span className="subtitle-dot">•</span>
-
-    <span>
-        {students.length}{" "}
-        {students.length === 1
-            ? "Student"
-            : "Students"}
-    </span>
-</div>
-                </header>
-
-            
-
-                <section
-    className="attendance-summary"
-    aria-label="Filter students by attendance"
->
-    <button
-        type="button"
-        className={`summary-card total-summary ${
-            activeAttendanceFilter === "all"
-                ? "active-summary-filter"
-                : ""
-        }`}
-        onClick={() =>
-            handleAttendanceFilter("all")
-        }
-        aria-pressed={
-            activeAttendanceFilter === "all"
-        }
-    >
-        <span>Total</span>
-        <strong>{students.length}</strong>
-    </button>
-
-    <button
-        type="button"
-        className={`summary-card present-summary ${
-            activeAttendanceFilter === "present"
-                ? "active-summary-filter"
-                : ""
-        }`}
-        onClick={() =>
-            handleAttendanceFilter("present")
-        }
-        aria-pressed={
-            activeAttendanceFilter === "present"
-        }
-    >
-        <span>Present</span>
-
-        <strong>
-            {attendanceCounts.present}
-        </strong>
-    </button>
-
-    <button
-        type="button"
-        className={`summary-card absent-summary ${
-            activeAttendanceFilter === "absent"
-                ? "active-summary-filter"
-                : ""
-        }`}
-        onClick={() =>
-            handleAttendanceFilter("absent")
-        }
-        aria-pressed={
-            activeAttendanceFilter === "absent"
-        }
-    >
-        <span>Absent</span>
-
-        <strong>
-            {attendanceCounts.absent}
-        </strong>
-    </button>
-
-    <button
-        type="button"
-        className={`summary-card not-marked-summary ${
-            activeAttendanceFilter === "notMarked"
-                ? "active-summary-filter"
-                : ""
-        }`}
-        onClick={() =>
-            handleAttendanceFilter("notMarked")
-        }
-        aria-pressed={
-            activeAttendanceFilter === "notMarked"
-        }
-    >
-        <span>Not Marked</span>
-
-        <strong>
-            {attendanceCounts.notMarked}
-        </strong>
-    </button>
-</section>
-<section className="date-section">
-    <label htmlFor="attendance-date">
-        Attendance Date
-    </label>
-
-    <input
-        id="attendance-date"
-        type="date"
-        value={attendanceDate}
-        onChange={(event) =>
-            setAttendanceDate(event.target.value)
-        }
-    />
-</section>
-
-                <section className="students-toolbar">
-                    <div className="students-search">
-                        <svg
-                            viewBox="0 0 24 24"
-                            aria-hidden="true"
-                        >
-                            <path
-                                d="m21 21-4.35-4.35m2.35-5.15a7.5 7.5 0 1 1-15 0 7.5 7.5 0 0 1 15 0Z"
-                                fill="none"
-                                stroke="currentColor"
-                                strokeWidth="2"
-                                strokeLinecap="round"
-                            />
-                        </svg>
-
-                        <input
-                            type="search"
-                            value={searchText}
-                            onChange={(event) =>
-                                setSearchText(
-                                    event.target.value
-                                )
-                            }
-                            placeholder="Search by name or roll number..."
-                            aria-label="Search students"
-                        />
-
-                        {searchText && (
-                            <button
-                                type="button"
-                                className="clear-search-button"
-                                onClick={() =>
-                                    setSearchText("")
-                                }
-                                aria-label="Clear search"
-                            >
-                                ×
-                            </button>
-                        )}
-                    </div>
-
-                    <button
-                        type="button"
-                        className="add-student-button"
-                        onClick={openAddStudentForm}
-                    >
-                        <span aria-hidden="true">＋</span>
-                        Add Student
-                    </button>
-                </section>
-
-                <section className="students-list-card">
-                    <div className="students-table-header">
-                        <span>Student</span>
-
-                        <div className="table-action-headings">
-                            <span>Present</span>
-                            <span>Absent</span>
-                            <span>Delete</span>
-                        </div>
-                    </div>
-
-                    {filteredStudents.length > 0 ? (
-                        <div className="students-list">
-                            {filteredStudents.map(
-                                (student) => {
-                                    const studentStatus =
-                                        attendance[
-                                            student.id
-                                        ];
-
-                                    return (
-                                        <article
-                                            className="student-row"
-                                            key={
-                                                student.id
-                                            }
-                                        >
-                                            <div className="student-details">
-                                                <span className="student-roll">
-                                                    {
-                                                        student.rollNumber
-                                                    }
-                                                </span>
-
-                                                <div className="student-avatar">
-                                                    {student.name
-                                                        .charAt(
-                                                            0
-                                                        )
-                                                        .toUpperCase()}
-                                                </div>
-
-                                                <div className="student-name-area">
-                                                    <h2>
-                                                        {
-                                                            student.name
-                                                        }
-                                                    </h2>
-
-                                                    <p>
-                                                        Roll
-                                                        Number:{" "}
-                                                        {
-                                                            student.rollNumber
-                                                        }
-                                                    </p>
-                                                </div>
-                                            </div>
-
-                                            <div className="student-actions">
-                                                <label
-                                                    className="attendance-control present-control"
-                                                    title="Present"
-                                                >
-                                                    <span className="mobile-control-label">
-                                                        P
-                                                    </span>
-
-                                                    <input
-                                                        type="checkbox"
-                                                        checked={
-                                                            studentStatus ===
-                                                            "present"
-                                                        }
-                                                        onChange={() =>
-                                                            handleAttendanceChange(
-                                                                student.id,
-                                                                "present"
-                                                            )
-                                                        }
-                                                        aria-label={`Mark ${student.name} present`}
-                                                    />
-
-                                                    <span
-                                                        className="attendance-box"
-                                                        aria-hidden="true"
-                                                    >
-                                                        ✓
-                                                    </span>
-                                                </label>
-
-                                                <label
-                                                    className="attendance-control absent-control"
-                                                    title="Absent"
-                                                >
-                                                    <span className="mobile-control-label">
-                                                        A
-                                                    </span>
-
-                                                    <input
-                                                        type="checkbox"
-                                                        checked={
-                                                            studentStatus ===
-                                                            "absent"
-                                                        }
-                                                        onChange={() =>
-                                                            handleAttendanceChange(
-                                                                student.id,
-                                                                "absent"
-                                                            )
-                                                        }
-                                                        aria-label={`Mark ${student.name} absent`}
-                                                    />
-
-                                                    <span
-                                                        className="attendance-box"
-                                                        aria-hidden="true"
-                                                    >
-                                                        ✓
-                                                    </span>
-                                                </label>
-
-                                                <button
-                                                    type="button"
-                                                    className="delete-student-button"
-                                                    onClick={() =>
-                                                        handleDeleteStudent(
-                                                            student
-                                                        )
-                                                    }
-                                                    aria-label={`Delete ${student.name}`}
-                                                    title={`Delete ${student.name}`}
-                                                >
-                                                    <svg
-                                                        viewBox="0 0 24 24"
-                                                        aria-hidden="true"
-                                                    >
-                                                        <path
-                                                            d="M4 7h16M9 7V4h6v3m-8 0 1 13h8l1-13M10 11v5m4-5v5"
-                                                            fill="none"
-                                                            stroke="currentColor"
-                                                            strokeWidth="1.8"
-                                                            strokeLinecap="round"
-                                                            strokeLinejoin="round"
-                                                        />
-                                                    </svg>
-                                                </button>
-                                            </div>
-                                        </article>
-                                    );
-                                }
-                            )}
-                        </div>
-                    ) : (
-                        <div className="students-empty-state">
-                            <div className="empty-state-icon">
-                                <svg
-                                    viewBox="0 0 24 24"
-                                    aria-hidden="true"
-                                >
-                                    <path
-                                        d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2M9 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8Zm10-4v6m3-3h-6"
-                                        fill="none"
-                                        stroke="currentColor"
-                                        strokeWidth="1.8"
-                                        strokeLinecap="round"
-                                        strokeLinejoin="round"
-                                    />
-                                </svg>
-                            </div>
-
-                            <h2>
-    {students.length === 0
-        ? "No students added yet"
-        : searchText
-        ? "No students found"
-        : activeAttendanceFilter === "present"
-        ? "No present students"
-        : activeAttendanceFilter === "absent"
-        ? "No absent students"
-        : activeAttendanceFilter === "notMarked"
-        ? "Everyone has been marked"
-        : "No students found"}
-</h2>
-
-<p>
-    {students.length === 0
-        ? "Add your first student to begin taking attendance."
-        : searchText
-        ? `No student matches “${searchText}”.`
-        : activeAttendanceFilter === "present"
-        ? "No student is currently marked present."
-        : activeAttendanceFilter === "absent"
-        ? "No student is currently marked absent."
-        : activeAttendanceFilter === "notMarked"
-        ? "All students have an attendance status."
-        : "No matching students are available."}
-</p>
-
-                            {students.length === 0 ? (
-                                <button
-                                    type="button"
-                                    onClick={
-                                        openAddStudentForm
-                                    }
-                                >
-                                    ＋ Add First Student
-                                </button>
-                            ) : (
-                                <button
-                                    type="button"
-                                    onClick={() =>
-                                        setSearchText("")
-                                    }
-                                >
-                                    Clear Search
-                                </button>
-                            )}
-                        </div>
-                    )}
-                </section>
-
-                <footer className="students-footer">
-                    <button
-                        type="button"
-                        className="delete-all-button"
-                        onClick={
-                            handleDeleteAllStudents
-                        }
-                        disabled={
-                            students.length === 0
-                        }
-                    >
-                        Delete All Students
-                    </button>
-
-                    <div className="save-attendance-area">
-                        {savedMessage && (
-                            <span
-                                className="saved-message"
-                                role="status"
-                            >
-                                {savedMessage}
-                            </span>
-                        )}
-
-                        <button
-                            type="button"
-                            className="save-attendance-button"
-                            onClick={
-                                handleSaveAttendance
-                            }
-                            disabled={
-                                students.length === 0
-                            }
-                        >
-                            Save Attendance
-                        </button>
-                    </div>
-                </footer>
-            </section>
-
-            {showAddStudentForm && (
-                <div
-                    className="add-student-overlay"
-                    onMouseDown={(event) => {
-                        if (
-                            event.target ===
-                            event.currentTarget
-                        ) {
-                            closeAddStudentForm();
-                        }
-                    }}
-                >
-                    <form
-                        className="add-student-modal"
-                        onSubmit={handleAddStudent}
-                    >
-                        <div className="modal-header">
-                            <div>
-                                <p>Add New Student</p>
-                                <h2>Student Details</h2>
-                            </div>
-
-                            <button
-                                type="button"
-                                className="close-modal-button"
-                                onClick={
-                                    closeAddStudentForm
-                                }
-                                aria-label="Close"
-                            >
-                                ×
-                            </button>
-                        </div>
-
-                        <div className="student-form-field">
-                            <label htmlFor="new-student-name">
-                                Student Name
-                            </label>
-
-                            <input
-                                id="new-student-name"
-                                type="text"
-                                value={studentName}
-                                onChange={(event) => {
-                                    setStudentName(
-                                        event.target.value
-                                    );
-                                    setFormError("");
-                                }}
-                                placeholder="Enter full name"
-                                autoFocus
-                            />
-                        </div>
-
-                        <div className="student-form-field">
-                            <label htmlFor="new-roll-number">
-                                Roll Number
-                            </label>
-
-                            <input
-                                id="new-roll-number"
-                                type="text"
-                                value={rollNumber}
-                                onChange={(event) => {
-                                    setRollNumber(
-                                        event.target.value
-                                    );
-                                    setFormError("");
-                                }}
-                                placeholder="Example: 01"
-                            />
-
-                            <small>
-                                The next available roll
-                                number is filled
-                                automatically.
-                            </small>
-                        </div>
-
-                        {formError && (
-                            <p
-                                className="student-form-error"
-                                role="alert"
-                            >
-                                {formError}
-                            </p>
-                        )}
-
-                        <div className="modal-actions">
-                            <button
-                                type="button"
-                                className="cancel-modal-button"
-                                onClick={
-                                    closeAddStudentForm
-                                }
-                            >
-                                Cancel
-                            </button>
-
-                            <button
-                                type="submit"
-                                className="confirm-student-button"
-                            >
-                                Add Student
-                            </button>
-                        </div>
-                    </form>
-                </div>
-            )}
-        </main>
-    );
+             <button
+           className={`attendance-btn ${
+             attendance[student.id] === "Absent" ? "absent-active" : ""
+             }`}
+           onClick={() => handleAttendance(student.id, "Absent")}
+            >
+           {attendance[student.id] === "Absent" ? "✖ " : "Absent"}
+         </button>
+         <div className="icon-btn">
+          <span class="material-symbols-outlined">
+        delete
+            </span></div>
+    </div>
+  </div>
+))}
+      </div>
+    </div>
+  );
 }
 
 export default Students;
