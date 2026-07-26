@@ -423,3 +423,95 @@ hr {
     margin-right: 0;
   }
 }
+
+/* button ke better position style ka code */
+
+.student-row{
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    width:100%;
+    padding:12px 20px;
+    margin:12px 0;
+    border-radius:10px;
+}
+
+.student-name{
+    flex:1;
+    min-width:220px;
+    font-size:18px;
+    font-weight:500;
+    color:white;
+}
+
+.student-actions{
+    display:flex; 
+    gap:15px;
+    flex-shrink:0;
+    justify-self: center;
+}
+.student-actions-nav{
+    display:flex; 
+    gap:15px;
+    flex-shrink:0;
+    justify-self: end;
+}
+
+ strong .present-btn{
+  align-items: end;
+  text-align: end;
+}
+
+strong .absent-btn{
+  align-items: end;
+  margin-left: 20px;
+  text-align: end !important;
+}
+
+strong .delete-btn{
+  align-items: end;
+}
+
+
+
+.student-actions-nav strong{
+  color: white;
+ 
+}
+
+
+.attendance-btn{
+    width:120px;
+    height:45px;
+    border:none;
+    border-radius:10px;
+    cursor:pointer;
+    color:white;
+    font-size:16px;
+    font-weight:bold;
+    background:linear-gradient(90deg,#4F7BFF,#C52ED6);
+}
+
+.present-active{
+    background:#16a34a !important;
+}
+
+.absent-active{
+    background:#dc2626 !important;
+}
+
+/* Calendar icon  ko white  kiya  */
+input[type="date"]::-webkit-calendar-picker-indicator {
+  filter: brightness(0) invert(1);
+  cursor: pointer;
+  opacity: 1;
+}
+
+
+input[type="date"] {
+  color-scheme: dark;
+}
+
+.icon-btn{
+  color: white;
+}

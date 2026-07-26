@@ -303,24 +303,50 @@ function Students() {
           onChange={(e) => handleDateChange(e)}
         />
 
-        {students.map((student) => (
-          <div key={student.id}>
-            {student.rollNo}. {student.studentName}
-            {!attendanceExists && !attendance[student.id] ? (
-              <>
-                <button onClick={() => handleAttendance(student.id, "Present")}>
-                  Present
+        <div className="student-row header-row">
+              <div className="student-name">
+                   <strong>Student Name</strong>
+              </div>
+
+              <div className="student-actions-nav">
+                  <strong style={{width:"100px",textAlign:"end"}}className="present-btn">Present</strong>
+                 <strong  style={{width:"100px",textAlign:"end" }} className="absent-btn">Absent</strong>
+                  <strong style={{width:"80px",textAlign:"end"}} className="delete-btn">Delete</strong>
+              </div>
+        </div>
+
+     
+          {students.map((student) => (
+               <div className="student-row" key={student.id}>
+                  <div className="student-name">
+                   {student.rollNo}. {student.studentName}
+             </div>
+
+          <div className="student-actions">
+              <button
+                 className={`attendance-btn ${
+                 attendance[student.id] === "Present" ? "present-active" : ""
+                   }`}
+               onClick={() => handleAttendance(student.id, "Present")}
+                 >
+                {attendance[student.id] === "Present" ? "✔ " : "Present"}
                 </button>
 
-                <button onClick={() => handleAttendance(student.id, "Absent")}>
-                  Absent
-                </button>
-              </>
-            ) : (
-              <span>{attendance[student.id]}</span>
-            )}
-          </div>
-        ))}
+             <button
+           className={`attendance-btn ${
+             attendance[student.id] === "Absent" ? "absent-active" : ""
+             }`}
+           onClick={() => handleAttendance(student.id, "Absent")}
+            >
+           {attendance[student.id] === "Absent" ? "✖ " : "Absent"}
+         </button>
+         <div className="icon-btn">
+          <span class="material-symbols-outlined">
+        delete
+            </span></div>
+    </div>
+  </div>
+))}
       </div>
     </div>
   );
