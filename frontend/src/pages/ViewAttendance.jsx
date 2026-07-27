@@ -93,7 +93,8 @@ function ViewAttendance() {
       {attendance.length === 0 ? (
         <p>No attendance found.</p>
       ) : (
-        <table border="1" cellPadding="10">
+        <div className="table-container">
+         <table className="table-head">   
           <thead>
             <tr>
               <th>Roll No</th>
@@ -105,12 +106,12 @@ function ViewAttendance() {
 
           <tbody>
             {attendance.map((student) => (
-              <tr key={student.student_id}>
+              <tr className="table-row" key={student.student_id}>
                 <td>{student.roll_no}</td>
                 <td>{student.student_name}</td>
                 <td>{student.status ?? "Not Marked"}</td>
                 <td>
-                  <button onClick={() => handleToggle(student)}>
+                  <button onClick={() => handleToggle(student)}  className="action-btn">
                     {student.status === "Present"
                       ? "Mark Absent"
                       : "Mark Present"}
@@ -120,6 +121,8 @@ function ViewAttendance() {
             ))}
           </tbody>
         </table>
+        </div>
+        
       )}
 
       {showAccessModal && (
