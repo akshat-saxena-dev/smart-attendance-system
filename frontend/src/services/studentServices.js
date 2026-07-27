@@ -38,3 +38,9 @@ export const deleteStudents = async (sectionId) => {
 
     return response.data;
 };
+
+
+export const deleteStudent = async (studentId) => {
+  const response = await api.delete(`/student/${studentId}`);
+  return response.data;
+};

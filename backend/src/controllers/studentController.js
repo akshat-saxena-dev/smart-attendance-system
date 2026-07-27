@@ -209,9 +209,70 @@ const deleteStudents = async (req, res) => {
   }
 };
 
+
+const deleteStudent = async (req, res) => {
+  const { studentId } = req.params;
+
+  const client = await pool.connect();
+
+  try {
+    await client.query("BEGIN");
+
+    // Find the student first
+    const student = await client.query(
+      `SELECT section_id, roll_no
+       FROM students
+       WHERE id = $1`,
+      [studentId]
+    );
+
+    if (student.rows.length === 0) {
+      await client.query("ROLLBACK");
+      return res.status(404).json({
+        message: "Student not found.",
+      });
+    }
+
+    const { section_id, roll_no } = student.rows[0];
+
+    // Delete student
+    await client.query(
+      "DELETE FROM students WHERE id = $1",
+      [studentId]
+    );
+
+    // Shift roll numbers
+    await client.query(
+      `UPDATE students
+       SET roll_no = roll_no - 1
+       WHERE section_id = $1
+       AND roll_no > $2`,
+      [section_id, roll_no]
+    );
+
+    await client.query("COMMIT");
+
+    res.json({
+      success: true,
+      message: "Student deleted successfully.",
+    });
+  } catch (err) {
+    await client.query("ROLLBACK");
+    console.error(err);
+
+    res.status(500).json({
+      success: false,
+      message: "Failed to delete student.",
+    });
+  } finally {
+    client.release();
+  }
+};
+
 module.exports = {
   addStudents,
   getStudents,
   deleteStudents,
+  deleteStudent,
   addStudent,
 };

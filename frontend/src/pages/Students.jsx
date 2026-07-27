@@ -1,10 +1,11 @@
 import { useEffect, useState } from "react";
 import BackButton from "../components/BackButton";
-import { useParams } from "react-router-dom";
+import { useNavigate, useParams } from "react-router-dom";
 import {
   addStudents,
   getStudents,
   deleteStudents,
+  deleteStudent,
   addStudent,
 } from "../services/studentServices";
 import {
@@ -24,6 +25,8 @@ function Students() {
   const [showAddStudent, setShowAddStudent] = useState(false);
   const [newRollNo, setNewRollNo] = useState("");
   const [newStudentName, setNewStudentName] = useState("");
+
+  const navigate = useNavigate();
 
   const handleSave = async () => {
     try {
@@ -88,6 +91,10 @@ function Students() {
     }
   };
 
+  useEffect(() => {
+    fetchStudents();
+  }, [sectionId]);
+
   const handleDeleteStudents = async () => {
     const confirmDelete = window.confirm(
       "Delete all students? This will also delete all attendance records.",
@@ -101,12 +108,28 @@ function Students() {
       await deleteStudents(sectionId);
 
       alert("Students deleted successfully.");
-
-      await fetchStudents();
     } catch (err) {
       console.error(err);
 
       alert("Failed to delete students.");
+    }
+  };
+
+  const handleDeleteStudent = async (studentId) => {
+    const confirmDelete = window.confirm("Delete this student?");
+
+    if (!confirmDelete) return;
+
+    try {
+      await deleteStudent(studentId);
+
+      alert("Student deleted successfully.");
+
+      await fetchStudents();
+    } catch (error) {
+      console.error(error);
+
+      alert("Failed to delete student.");
     }
   };
 
@@ -115,6 +138,12 @@ function Students() {
       alert("Please select a date first.");
       return;
     }
+
+    if (Object.keys(attendance).length !== students.length) {
+      alert("Please mark attendance for all students.");
+      return;
+    }
+
     try {
       const attendanceArray = Object.entries(attendance).map(
         ([studentId, status]) => ({
@@ -129,6 +158,7 @@ function Students() {
 
       setAttendance({});
       setAttendanceExists(true);
+      setSelectedDate("");
     } catch (err) {
       console.error(err);
 
@@ -146,6 +176,8 @@ function Students() {
         );
 
         setAttendanceExists(true);
+        setSelectedDate("");
+        return;
       } else {
         setAttendanceExists(false);
 
@@ -193,19 +225,6 @@ function Students() {
     await checkAttendanceForDate(newDate);
   };
 
-  useEffect(() => {
-    if (
-      students.length > 0 &&
-      Object.keys(attendance).length === students.length
-    ) {
-      saveAttendanceRecord();
-    }
-  }, [attendance]);
-
-  useEffect(() => {
-    fetchStudents();
-  }, []);
-
   return (
     <div className="student-page">
       <BackButton fallback="/dashboard" />
@@ -214,6 +233,12 @@ function Students() {
         <h1>Students Dashboard</h1>
 
         <p>Section ID: {sectionId}</p>
+
+        <button
+          onClick={() => navigate(`/sections/${sectionId}/view-attendance`)}
+        >
+          View Attendance
+        </button>
 
         {students.length === 0 ? (
           <>
@@ -304,49 +329,72 @@ function Students() {
         />
 
         <div className="student-row header-row">
-              <div className="student-name">
-                   <strong>Student Name</strong>
-              </div>
+          <div className="student-name">
+            <strong>Student Name</strong>
+          </div>
 
-              <div className="student-actions-nav">
-                  <strong style={{width:"100px",textAlign:"end"}}className="present-btn">Present</strong>
-                 <strong  style={{width:"100px",textAlign:"end" }} className="absent-btn">Absent</strong>
-                  <strong style={{width:"80px",textAlign:"end"}} className="delete-btn">Delete</strong>
-              </div>
+          <div className="student-actions-nav">
+            <strong
+              style={{ width: "100px", textAlign: "end" }}
+              className="present-btn"
+            >
+              Present
+            </strong>
+            <strong
+              style={{ width: "100px", textAlign: "end" }}
+              className="absent-btn"
+            >
+              Absent
+            </strong>
+            <strong
+              style={{ width: "80px", textAlign: "end" }}
+              className="delete-btn"
+            >
+              Delete
+            </strong>
+          </div>
         </div>
 
-     
-          {students.map((student) => (
-               <div className="student-row" key={student.id}>
-                  <div className="student-name">
-                   {student.rollNo}. {student.studentName}
-             </div>
+        {students.map((student) => (
+          <div className="student-row" key={student.id}>
+            <div className="student-name">
+              {student.rollNo}. {student.studentName}
+            </div>
 
-          <div className="student-actions">
+            <div className="student-actions">
               <button
-                 className={`attendance-btn ${
-                 attendance[student.id] === "Present" ? "present-active" : ""
-                   }`}
-               onClick={() => handleAttendance(student.id, "Present")}
-                 >
+                className={`attendance-btn ${
+                  attendance[student.id] === "Present" ? "present-active" : ""
+                }`}
+                onClick={() => handleAttendance(student.id, "Present")}
+              >
                 {attendance[student.id] === "Present" ? "✔ " : "Present"}
-                </button>
+              </button>
 
-             <button
-           className={`attendance-btn ${
-             attendance[student.id] === "Absent" ? "absent-active" : ""
-             }`}
-           onClick={() => handleAttendance(student.id, "Absent")}
-            >
-           {attendance[student.id] === "Absent" ? "✖ " : "Absent"}
-         </button>
-         <div className="icon-btn">
-          <span class="material-symbols-outlined">
-        delete
-            </span></div>
-    </div>
-  </div>
-))}
+              <button
+                className={`attendance-btn ${
+                  attendance[student.id] === "Absent" ? "absent-active" : ""
+                }`}
+                onClick={() => handleAttendance(student.id, "Absent")}
+              >
+                {attendance[student.id] === "Absent" ? "✖ " : "Absent"}
+              </button>
+              <div
+                className="icon-btn"
+                onClick={() => handleDeleteStudent(student.id)}
+                style={{ cursor: "pointer" }}
+              >
+                <span className="material-symbols-outlined">delete</span>
+              </div>
+            </div>
+          </div>
+        ))}
+
+        {students.length > 0 && (
+          <div style={{ marginTop: "20px" }}>
+            <button onClick={saveAttendanceRecord}>Save Attendance</button>
+          </div>
+        )}
       </div>
     </div>
   );
