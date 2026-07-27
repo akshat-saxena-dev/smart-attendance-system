@@ -110,7 +110,138 @@ const checkAttendance = async (req, res) => {
   }
 };
 
+const getAttendanceByDate = async (req, res) => {
+  try {
+    const { sectionId, date } = req.params;
+
+    const result = await pool.query(
+      `
+      SELECT
+          s.id AS student_id,
+          s.roll_no,
+          s.student_name,
+          a.status
+      FROM students s
+      LEFT JOIN attendance a
+        ON s.id = a.student_id
+      WHERE s.section_id = $1
+        AND a.attendance_date = $2
+      ORDER BY s.roll_no;
+      `,
+      [sectionId, date],
+    );
+
+    res.status(200).json({
+      attendance: result.rows,
+    });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({
+      message: "Error fetching attendance.",
+    });
+  }
+};
+
+const updateAttendance = async (req, res) => {
+  const client = await pool.connect();
+
+  try {
+    await client.query("BEGIN");
+
+    const { studentId, attendanceDate, status, accessCode } = req.body;
+
+    // Validate input
+    if (!studentId || !attendanceDate || !status || !accessCode) {
+      await client.query("ROLLBACK");
+      return res.status(400).json({
+        message: "All fields are required.",
+      });
+    }
+
+    // Find the student's section
+    const studentResult = await client.query(
+      `
+      SELECT section_id
+      FROM students
+      WHERE id = $1
+      `,
+      [studentId]
+    );
+
+    if (studentResult.rows.length === 0) {
+      await client.query("ROLLBACK");
+      return res.status(404).json({
+        message: "Student not found.",
+      });
+    }
+
+    const sectionId = studentResult.rows[0].section_id;
+
+    // Verify section access code
+    const sectionResult = await client.query(
+      `
+      SELECT access_code
+      FROM sections
+      WHERE id = $1
+      `,
+      [sectionId]
+    );
+
+    if (sectionResult.rows.length === 0) {
+      await client.query("ROLLBACK");
+      return res.status(404).json({
+        message: "Section not found.",
+      });
+    }
+
+    if (sectionResult.rows[0].access_code !== accessCode) {
+      await client.query("ROLLBACK");
+      return res.status(401).json({
+        message: "Invalid access code.",
+      });
+    }
+
+    // Update attendance
+    const updateResult = await client.query(
+      `
+      UPDATE attendance
+      SET status = $1
+      WHERE student_id = $2
+        AND attendance_date = $3
+      `,
+      [status, studentId, attendanceDate]
+    );
+
+    if (updateResult.rowCount === 0) {
+      await client.query("ROLLBACK");
+      return res.status(404).json({
+        message: "Attendance record not found.",
+      });
+    }
+
+    await client.query("COMMIT");
+
+    return res.status(200).json({
+      message: "Attendance updated successfully.",
+    });
+
+  } catch (err) {
+    await client.query("ROLLBACK");
+
+    console.error(err);
+
+    return res.status(500).json({
+      message: "Failed to update attendance.",
+    });
+
+  } finally {
+    client.release();
+  }
+};
+
 module.exports = {
   saveAttendance,
   checkAttendance,
+  getAttendanceByDate,
+  updateAttendance,
 };

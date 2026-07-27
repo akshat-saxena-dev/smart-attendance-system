@@ -6,6 +6,7 @@ import Dashboard from "./pages/Dashboard";
 import Students from "./pages/Students";
 import Login from "./pages/Login";
 import Register from "./pages/Register";
+import ViewAttendance from "./pages/ViewAttendance";
 
 function App() {
   return (
@@ -18,9 +19,10 @@ function App() {
 
         <Route path="/dashboard" element={<Dashboard />} />
         <Route path="/classes/:classId" element={<Class />} />
+        <Route path="/sections/:sectionId/students" element={<Students />} />
         <Route
-          path="/sections/:sectionId/students"
-          element={<Students />}
+          path="/sections/:sectionId/view-attendance"
+          element={<ViewAttendance />}
         />
       </Routes>
     </BrowserRouter>

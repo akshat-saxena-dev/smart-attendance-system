@@ -514,6 +514,7 @@ input[type="date"] {
 
 .icon-btn{
   color: white;
+  cursor: pointer;
 }
 
 @media(max-width: 768px){

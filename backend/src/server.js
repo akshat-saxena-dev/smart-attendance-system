@@ -18,7 +18,7 @@ app.use("/", authRoutes);
 app.use("/", classRoutes);
 app.use("/", sectionRoutes);
 app.use("/", studentRoutes);
-app.use("/", attendanceRoutes);
+app.use("/attendance", attendanceRoutes);
 
 const PORT = 5000;
 
