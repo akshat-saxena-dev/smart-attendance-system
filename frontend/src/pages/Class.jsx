@@ -6,6 +6,7 @@ import {
   createSection,
   verifySection,
 } from "../services/sectionService";
+import Loader from "../components/Loader";
 
 function Class() {
   const { classId } = useParams();
@@ -13,6 +14,7 @@ function Class() {
   const schoolId = localStorage.getItem("schoolId");
 
   const [sections, setSections] = useState([]);
+  const [loading, setLoading] = useState(true);
 
   const navigate = useNavigate();
 
@@ -25,6 +27,8 @@ function Class() {
       }
     } catch (err) {
       alert(err.response?.data?.message || "Unable to fetch sections");
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -75,6 +79,8 @@ function Class() {
       alert(err.response?.data?.message || "Unable to create section");
     }
   };
+
+  if (loading) return <Loader />
 
   return (
     <div className="class-page">

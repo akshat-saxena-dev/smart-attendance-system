@@ -44,3 +44,14 @@ export const deleteStudent = async (studentId) => {
   const response = await api.delete(`/student/${studentId}`);
   return response.data;
 };
+
+
+export const uploadStudentImage = async (image) => {
+  const formData = new FormData();
+
+  formData.append("image", image);
+
+  const response = await api.post("/ocr", formData);
+
+  return response.data;
+};

@@ -7,6 +7,7 @@ import Students from "./pages/Students";
 import Login from "./pages/Login";
 import Register from "./pages/Register";
 import ViewAttendance from "./pages/ViewAttendance";
+import OCRUpload from "./pages/OCRUpload";
 
 function App() {
   return (
@@ -24,6 +25,7 @@ function App() {
           path="/sections/:sectionId/view-attendance"
           element={<ViewAttendance />}
         />
+        <Route path="/sections/:sectionId/ocr" element={<OCRUpload />} />
       </Routes>
     </BrowserRouter>
   );

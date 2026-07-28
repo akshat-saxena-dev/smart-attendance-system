@@ -1,4 +1,5 @@
 const pool = require("../config/db");
+const { readImage, parseStudents } = require("../services/ocrService");
 
 const addStudents = async (req, res) => {
   try {
@@ -19,17 +20,25 @@ const addStudents = async (req, res) => {
       [sectionId],
     );
 
-    let nextRoll = rollResult.rows[0].max_roll + 1;
+    for (const student of students) {
+      const rollNo =
+        typeof student === "string"
+          ? rollResult.rows[0].max_roll + 1
+          : student.roll_no;
 
-    for (const studentName of students) {
+      const studentName =
+        typeof student === "string" ? student : student.student_name;
+
       await pool.query(
         `INSERT INTO students
-                (section_id, roll_no, student_name)
-                VALUES ($1, $2, $3)`,
-        [sectionId, nextRoll, studentName],
+      (section_id, roll_no, student_name)
+      VALUES ($1, $2, $3)`,
+        [sectionId, rollNo, studentName],
       );
 
-      nextRoll++;
+      if (typeof student === "string") {
+        rollResult.rows[0].max_roll++;
+      }
     }
 
     res.status(201).json({
@@ -209,7 +218,6 @@ const deleteStudents = async (req, res) => {
   }
 };
 
-
 const deleteStudent = async (req, res) => {
   const { studentId } = req.params;
 
@@ -223,7 +231,7 @@ const deleteStudent = async (req, res) => {
       `SELECT section_id, roll_no
        FROM students
        WHERE id = $1`,
-      [studentId]
+      [studentId],
     );
 
     if (student.rows.length === 0) {
@@ -236,10 +244,7 @@ const deleteStudent = async (req, res) => {
     const { section_id, roll_no } = student.rows[0];
 
     // Delete student
-    await client.query(
-      "DELETE FROM students WHERE id = $1",
-      [studentId]
-    );
+    await client.query("DELETE FROM students WHERE id = $1", [studentId]);
 
     // Shift roll numbers
     await client.query(
@@ -247,7 +252,7 @@ const deleteStudent = async (req, res) => {
        SET roll_no = roll_no - 1
        WHERE section_id = $1
        AND roll_no > $2`,
-      [section_id, roll_no]
+      [section_id, roll_no],
     );
 
     await client.query("COMMIT");
@@ -269,10 +274,34 @@ const deleteStudent = async (req, res) => {
   }
 };
 
+const uploadStudentsOCR = async (req, res) => {
+  try {
+    const text = await readImage(req.file.path);
+
+    console.log("OCR TEXT:");
+    console.log(text);
+
+    const students = parseStudents(text);
+
+    console.log(students);
+
+    res.json({
+      students,
+    });
+  } catch (err) {
+    console.error(err);
+
+    res.status(500).json({
+      message: "OCR failed.",
+    });
+  }
+};
+
 module.exports = {
   addStudents,
   getStudents,
   deleteStudents,
   deleteStudent,
   addStudent,
+  uploadStudentsOCR,
 };

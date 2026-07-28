@@ -43,7 +43,7 @@ function Register() {
                 "Registration failed"
             );
 
-        }
+        } 
     }
 
     return (

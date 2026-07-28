@@ -12,6 +12,7 @@ import {
   saveAttendance,
   checkAttendance,
 } from "../services/attendanceServices";
+import Loader from "../components/Loader";
 
 function Students() {
   const { sectionId } = useParams();
@@ -25,6 +26,7 @@ function Students() {
   const [showAddStudent, setShowAddStudent] = useState(false);
   const [newRollNo, setNewRollNo] = useState("");
   const [newStudentName, setNewStudentName] = useState("");
+  const [loading, setLoading] = useState(true);
 
   const navigate = useNavigate();
 
@@ -88,6 +90,8 @@ function Students() {
       setStudents(data.students);
     } catch (error) {
       alert("Unable to fetch students.");
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -106,6 +110,7 @@ function Students() {
 
     try {
       await deleteStudents(sectionId);
+      setStudents([]);
 
       alert("Students deleted successfully.");
     } catch (err) {
@@ -225,6 +230,8 @@ function Students() {
     await checkAttendanceForDate(newDate);
   };
 
+  if (loading) return <Loader />
+
   return (
     <div className="student-page">
       <BackButton fallback="/dashboard" />
@@ -252,7 +259,9 @@ function Students() {
               <>
                 <br />
                 <br />
-                <button>Add Students using OCR</button>
+                <button onClick={() => navigate(`/sections/${sectionId}/ocr`)}>
+                  OCR Upload
+                </button>
               </>
             }
           </>

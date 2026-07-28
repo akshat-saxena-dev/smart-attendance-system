@@ -2,10 +2,13 @@ import BackButton from "../components/BackButton";
 import { useEffect, useState } from "react";
 import { getClasses, createClass } from "../services/classService";
 import { useNavigate } from "react-router-dom";
+import Loader from "../components/Loader";
 
 function Dashboard() {
   const [classes, setClasses] = useState([]);
   const schoolId = localStorage.getItem("schoolId");
+
+  const [loading, setLoading] = useState(true);
 
   const navigate = useNavigate();
 
@@ -20,6 +23,8 @@ function Dashboard() {
       console.error(err);
 
       alert(err.response?.data?.message || "Unable to fetch classes");
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -49,6 +54,8 @@ function Dashboard() {
       alert(err.response?.data?.message || "Unable to create class");
     }
   };
+
+  if (loading) return <Loader />
 
   return (
     <div className="dashboard-page">
