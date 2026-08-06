@@ -183,7 +183,7 @@ npm run dev
 Create a `.env` file inside the backend folder.
 
 ```env
-DATABASE_URL="postgresql://neondb_owner:npg_S7TP8IQaUBZd@ep-round-bird-aoj5wvis-pooler.c-2.ap-southeast-1.aws.neon.tech/neondb?sslmode=verify-full&channel_binding=require"
+DATABASE_URL=your_database_url;
 ```
 
 ---
