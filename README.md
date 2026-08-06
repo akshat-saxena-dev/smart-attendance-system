@@ -153,7 +153,7 @@ View/Edit Attendance
 ## Clone Repository
 
 ```bash
-git clone https://github.com/<your-username>/smart-attendance-system.git
+git clone https://github.com/<akshat-saxena-dev>/smart-attendance-system.git
 ```
 
 ---
@@ -183,11 +183,7 @@ npm run dev
 Create a `.env` file inside the backend folder.
 
 ```env
-DB_HOST=localhost
-DB_PORT=5432
-DB_USER=your_username
-DB_PASSWORD=your_password
-DB_NAME=your_database
+DATABASE_URL="postgresql://neondb_owner:npg_S7TP8IQaUBZd@ep-round-bird-aoj5wvis-pooler.c-2.ap-southeast-1.aws.neon.tech/neondb?sslmode=verify-full&channel_binding=require"
 ```
 
 ---
